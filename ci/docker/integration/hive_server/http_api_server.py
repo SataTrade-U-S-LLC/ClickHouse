@@ -5,11 +5,17 @@ import subprocess
 from flask import Flask, flash, redirect, request, url_for
 
 
+ALLOWED_COMMANDS = {
+    "date": ["date"],
+    "list": ["ls", "-la"],
+}
+
+
 def run_command(command, wait=False):
-    print("{} - execute shell command:{}".format(datetime.datetime.now(), command))
+    print("{} - execute command:{}".format(datetime.datetime.now(), command))
     lines = []
     p = subprocess.Popen(
-        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=True
+        command, stdout=subprocess.PIPE, stderr=subprocess.STDOUT, shell=False
     )
     if wait:
         for l in iter(p.stdout.readline, b""):
@@ -65,8 +71,10 @@ def upload_file():
 
 @app.route("/run", methods=["GET", "POST"])
 def parse_request():
-    data = request.data  # data is empty
-    run_command(data, wait=True)
+    action = request.get_data(as_text=True).strip()
+    if action not in ALLOWED_COMMANDS:
+        return "Unsupported command", 400
+    run_command(ALLOWED_COMMANDS[action], wait=True)
     return "Ok"
 
 
